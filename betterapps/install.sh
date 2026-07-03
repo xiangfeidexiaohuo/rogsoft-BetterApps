@@ -7,7 +7,11 @@ UI_TYPE=ASUSWRT
 FW_TYPE_CODE=
 FW_TYPE_NAME=
 DIR=$(cd "$(dirname "$0")"; pwd)
-module=${DIR##*/}
+PACKAGE_DIR=${DIR##*/}
+MODULE_SLUG="betterapps"
+APP_NAME="BetterApps"
+HOME_PAGE="Module_BetterApps.asp"
+ICON_FILE="icon-betterapps.png"
 
 get_model(){
 	local ODMPID=$(nvram get odmpid)
@@ -46,11 +50,11 @@ exit_install(){
 		1)
 			echo_date "本插件适用于【koolshare 梅林改/官改 arm/hnd/axhnd/axhnd.675x】固件平台！"
 			echo_date "你的固件平台不能安装！"
-			rm -rf /tmp/${module}* >/dev/null 2>&1
+			rm -rf /tmp/${PACKAGE_DIR}* /tmp/${MODULE_SLUG}* /tmp/${APP_NAME}* >/dev/null 2>&1
 			exit 1
 			;;
 		0|*)
-			rm -rf /tmp/${module}* >/dev/null 2>&1
+			rm -rf /tmp/${PACKAGE_DIR}* /tmp/${MODULE_SLUG}* /tmp/${APP_NAME}* >/dev/null 2>&1
 			exit 0
 			;;
 	esac
@@ -100,71 +104,81 @@ install_ui(){
 	get_ui_type
 	if [ "${UI_TYPE}" = "ROG" ]; then
 		echo_date "安装ROG皮肤！"
-		sed -i '/asuscss/d' /koolshare/webs/Module_${module}.asp >/dev/null 2>&1
+		sed -i '/asuscss/d' /koolshare/webs/${HOME_PAGE} >/dev/null 2>&1
 	elif [ "${UI_TYPE}" = "TUF" ]; then
 		echo_date "安装TUF皮肤！"
-		sed -i '/asuscss/d' /koolshare/webs/Module_${module}.asp >/dev/null 2>&1
-		sed -i 's/3e030d/3e2902/g;s/91071f/92650F/g;s/680516/D0982C/g;s/cf0a2c/c58813/g;s/700618/74500b/g;s/530412/92650F/g' /koolshare/webs/Module_${module}.asp >/dev/null 2>&1
+		sed -i '/asuscss/d' /koolshare/webs/${HOME_PAGE} >/dev/null 2>&1
+		sed -i 's/3e030d/3e2902/g;s/91071f/92650F/g;s/680516/D0982C/g;s/cf0a2c/c58813/g;s/700618/74500b/g;s/530412/92650F/g' /koolshare/webs/${HOME_PAGE} >/dev/null 2>&1
 	elif [ "${UI_TYPE}" = "ASUSWRT" ]; then
 		echo_date "安装ASUSWRT皮肤！"
-		sed -i '/rogcss/d' /koolshare/webs/Module_${module}.asp >/dev/null 2>&1
+		sed -i '/rogcss/d' /koolshare/webs/${HOME_PAGE} >/dev/null 2>&1
 	fi
 }
 
 install_now(){
-	local TITLE="BetterApps"
+	local TITLE="${APP_NAME}"
 	local DESCR="BetterApps for Asus/ROG router"
 	local PLVER=$(cat "${DIR}/version")
-	local ENABLE=$(dbus get ${module}_enable)
+	local ENABLE=$(dbus get ${APP_NAME}_enable)
 
-	if [ "${ENABLE}" = "1" -o -n "$(pidof BetterApps)" ]; then
+	if [ "${ENABLE}" = "1" -o -n "$(pidof ${APP_NAME})" ]; then
 		echo_date "安装前先关闭 ${TITLE} 插件，以保证更新成功！"
-		killall BetterApps >/dev/null 2>&1
+		killall ${APP_NAME} >/dev/null 2>&1
 	fi
 
-	rm -f /koolshare/init.d/S99BetterApps.sh /koolshare/init.d/N99BetterApps.sh
+	rm -f /koolshare/init.d/S99${APP_NAME}.sh /koolshare/init.d/N99${APP_NAME}.sh
+	rm -f /koolshare/init.d/S99${MODULE_SLUG}.sh /koolshare/init.d/N99${MODULE_SLUG}.sh
 
 	echo_date "安装插件相关文件..."
-	if [ ! -x "/tmp/${module}/bin/BetterApps" ]; then
+	if [ ! -x "/tmp/${PACKAGE_DIR}/bin/${APP_NAME}" ]; then
 		echo_date "缺少 BetterApps 二进制或文件不可执行，安装失败！"
 		exit_install 1
 	fi
-	cp -f /tmp/${module}/bin/BetterApps /koolshare/bin/BetterApps || exit_install 1
-	cp -rf /tmp/${module}/scripts/* /koolshare/scripts/ || exit_install 1
-	cp -rf /tmp/${module}/webs/* /koolshare/webs/ || exit_install 1
-	if [ -d "/tmp/${module}/kaiplus" ]; then
+	cp -f /tmp/${PACKAGE_DIR}/bin/${APP_NAME} /koolshare/bin/${APP_NAME} || exit_install 1
+	cp -rf /tmp/${PACKAGE_DIR}/scripts/* /koolshare/scripts/ || exit_install 1
+	cp -rf /tmp/${PACKAGE_DIR}/webs/* /koolshare/webs/ || exit_install 1
+	if [ -d "/tmp/${PACKAGE_DIR}/kaiplus" ]; then
 		rm -rf /koolshare/BetterApps/kaiplus
 		mkdir -p /koolshare/BetterApps
-		cp -rf /tmp/${module}/kaiplus /koolshare/BetterApps/ || exit_install 1
+		cp -rf /tmp/${PACKAGE_DIR}/kaiplus /koolshare/BetterApps/ || exit_install 1
 	fi
-	if [ -d "/tmp/${module}/res" ]; then
-		cp -rf /tmp/${module}/res/* /koolshare/res/ >/dev/null 2>&1
+	if [ -d "/tmp/${PACKAGE_DIR}/res" ]; then
+		cp -rf /tmp/${PACKAGE_DIR}/res/* /koolshare/res/ >/dev/null 2>&1
 	fi
-	cp -rf /tmp/${module}/uninstall.sh /koolshare/scripts/uninstall_${module}.sh || exit_install 1
+	cp -rf /tmp/${PACKAGE_DIR}/uninstall.sh /koolshare/scripts/uninstall_${MODULE_SLUG}.sh || exit_install 1
+	cp -rf /tmp/${PACKAGE_DIR}/uninstall.sh /koolshare/scripts/uninstall_${APP_NAME}.sh || exit_install 1
 
-	chmod 755 /koolshare/bin/BetterApps >/dev/null 2>&1
-	chmod 755 /koolshare/scripts/${module}_*.sh >/dev/null 2>&1
-	chmod 755 /koolshare/scripts/uninstall_${module}.sh >/dev/null 2>&1
+	chmod 755 /koolshare/bin/${APP_NAME} >/dev/null 2>&1
+	chmod 755 /koolshare/scripts/${APP_NAME}_*.sh >/dev/null 2>&1
+	chmod 755 /koolshare/scripts/uninstall_${MODULE_SLUG}.sh >/dev/null 2>&1
+	chmod 755 /koolshare/scripts/uninstall_${APP_NAME}.sh >/dev/null 2>&1
 	chmod 755 /koolshare/BetterApps/kaiplus/bin/kaiplus_bin >/dev/null 2>&1 || true
 	chmod 755 /koolshare/BetterApps/kaiplus/helpers/kaiplus_workspace_tool >/dev/null 2>&1 || true
 	find /koolshare/BetterApps/kaiplus/defaults -type f -path '*/scripts/*' -exec chmod 755 {} \; >/dev/null 2>&1 || true
 
-	ln -sf /koolshare/scripts/${module}_config.sh /koolshare/init.d/S99${module}.sh
-	ln -sf /koolshare/scripts/${module}_config.sh /koolshare/init.d/N99${module}.sh
+	ln -sf /koolshare/scripts/${APP_NAME}_config.sh /koolshare/init.d/S99${APP_NAME}.sh
+	ln -sf /koolshare/scripts/${APP_NAME}_config.sh /koolshare/init.d/N99${APP_NAME}.sh
 
 	install_ui
 
 	echo_date "设置插件默认参数..."
-	dbus set ${module}_version="${PLVER}"
-	dbus set softcenter_module_${module}_version="${PLVER}"
-	dbus set softcenter_module_${module}_install="1"
-	dbus set softcenter_module_${module}_name="${module}"
-	dbus set softcenter_module_${module}_title="${TITLE}"
-	dbus set softcenter_module_${module}_description="${DESCR}"
+	dbus remove softcenter_module_${APP_NAME}_version
+	dbus remove softcenter_module_${APP_NAME}_install
+	dbus remove softcenter_module_${APP_NAME}_name
+	dbus remove softcenter_module_${APP_NAME}_title
+	dbus remove softcenter_module_${APP_NAME}_description
+	dbus remove ${MODULE_SLUG}_enable
+	dbus remove ${MODULE_SLUG}_version
+	dbus set ${APP_NAME}_version="${PLVER}"
+	dbus set softcenter_module_${MODULE_SLUG}_version="${PLVER}"
+	dbus set softcenter_module_${MODULE_SLUG}_install="1"
+	dbus set softcenter_module_${MODULE_SLUG}_name="${MODULE_SLUG}"
+	dbus set softcenter_module_${MODULE_SLUG}_title="${TITLE}"
+	dbus set softcenter_module_${MODULE_SLUG}_description="${DESCR}"
 
 	if [ "${ENABLE}" = "1" ]; then
 		echo_date "安装完毕，重新启用 ${TITLE} 插件！"
-		sh /koolshare/scripts/${module}_config.sh start
+		sh /koolshare/scripts/${APP_NAME}_config.sh start
 	fi
 
 	echo_date "${TITLE} 插件安装完毕！"

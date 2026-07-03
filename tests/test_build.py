@@ -110,3 +110,32 @@ class BuildScriptTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "sha256"):
             build.build_module(self.root)
         self.assertEqual(binary.read_bytes(), b"existing trusted binary\n")
+
+
+class BetterAppsPackageContractTest(unittest.TestCase):
+    def test_repository_uses_lowercase_softcenter_slug_and_icon(self):
+        conf = json.loads((ROOT / "config.json.js").read_text(encoding="utf-8"))
+        module = conf["module"]
+
+        self.assertEqual(module, "betterapps")
+        self.assertTrue((ROOT / module / "res" / f"icon-{module}.png").is_file())
+
+    def test_install_script_separates_softcenter_slug_from_internal_names(self):
+        install = (ROOT / "betterapps" / "install.sh").read_text(encoding="utf-8")
+
+        self.assertIn('MODULE_SLUG="betterapps"', install)
+        self.assertIn('APP_NAME="BetterApps"', install)
+        self.assertIn('HOME_PAGE="Module_BetterApps.asp"', install)
+        self.assertIn('ICON_FILE="icon-betterapps.png"', install)
+        self.assertIn('softcenter_module_${MODULE_SLUG}_name', install)
+        self.assertIn('softcenter_module_${APP_NAME}_name', install)
+
+    def test_uninstall_removes_current_and_legacy_betterapps_state(self):
+        uninstall = (ROOT / "betterapps" / "uninstall.sh").read_text(encoding="utf-8")
+
+        self.assertIn("/koolshare/res/icon-betterapps.png", uninstall)
+        self.assertIn("/koolshare/res/icon-BetterApps.png", uninstall)
+        self.assertIn("softcenter_module_betterapps_install", uninstall)
+        self.assertIn("softcenter_module_BetterApps_install", uninstall)
+        self.assertIn("/koolshare/scripts/uninstall_betterapps.sh", uninstall)
+        self.assertIn("/koolshare/scripts/uninstall_BetterApps.sh", uninstall)
